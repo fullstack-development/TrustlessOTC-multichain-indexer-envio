@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+name: berezka-indexer-envio
+networks:
+- id: 1
+  start_block: 0
+  contracts:
+  - name: TrustlessOTC
+    address:
+    - 0x3DF302A6e6f5F5a8eEBc844BbF2eCCE59879bA6A
+    handler: src/EventHandlers.ts
+    events:
+    - event: OfferCancelled(uint256 indexed tradeID)
+    - event: OfferCreated(uint256 indexed tradeID)
+    - event: OfferTaken(uint256 indexed tradeID)
+unordered_multichain_mode: true

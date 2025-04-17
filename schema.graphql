@@ -1,0 +1,30 @@
+type Token @entity {
+  id: Bytes!
+  symbol: String
+  name: String!
+  decimals: BigInt!
+}
+
+type TradeOffer @entity {
+  id: String!
+  tokenFrom: Token
+  tokenTo: Token
+  amountFrom: BigDecimal!
+  amountFromWithFee: BigDecimal!
+  amountTo: BigDecimal!
+  txFrom: Bytes!
+  creator: Bytes!
+  taker: Bytes!
+  optionalTaker: Bytes
+  active: Boolean!
+  completed: Boolean!
+  tradeID: BigInt!
+  feeAmount: BigInt!
+  blockNumber: BigInt!
+  creationTimestamp: BigInt!
+  cancelTimestamp: BigInt
+  takenTimestamp: BigInt
+  creationHash: Bytes!
+  cancelHash: Bytes
+  takenHash: Bytes
+}
