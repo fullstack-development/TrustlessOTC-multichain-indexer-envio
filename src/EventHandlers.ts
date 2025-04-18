@@ -1,36 +1,65 @@
-/*
- * Please refer to https://docs.envio.dev for a thorough guide on all Envio indexer features
- */
-import {
-  TrustlessOTC,
-  TrustlessOTC_OfferCancelled,
-  TrustlessOTC_OfferCreated,
-  TrustlessOTC_OfferTaken,
-} from "generated";
-
-TrustlessOTC.OfferCancelled.handler(async ({ event, context }) => {
-  const entity: TrustlessOTC_OfferCancelled = {
-    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-    tradeID: event.params.tradeID,
-  };
-
-  context.TrustlessOTC_OfferCancelled.set(entity);
-});
+import { TrustlessOTC, TradeOffer, BigDecimal, Token } from 'generated';
+import { ADDRESS_ZERO, ZERO_BI, ZERO_BD } from './utils/constants';
+import { getTokenDetails } from './utils/tokenDetails';
+import { fetchOffer } from './utils/offerDetails';
 
 TrustlessOTC.OfferCreated.handler(async ({ event, context }) => {
-  const entity: TrustlessOTC_OfferCreated = {
-    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
+  const tradeId = event.params.tradeID.toString();
+
+  const offer = await fetchOffer(event.srcAddress, BigInt(tradeId));
+
+  const tradeOffer: TradeOffer = {
+    id: tradeId,
+    tokenFrom_id: offer.tokenFrom,
+    tokenTo_id: offer.tokenTo,
+    amountFrom: BigDecimal(offer.amountFrom.toString()),
+    amountFromWithFee: ZERO_BD,
+    amountTo: BigDecimal(offer.amountTo.toString()),
+    txFrom: event.transaction.from ?? ADDRESS_ZERO,
+    creator: offer.creator,
+    taker: ADDRESS_ZERO,
+    optionalTaker: offer.optionalTaker,
+    active: true,
+    completed: false,
     tradeID: event.params.tradeID,
+    feeAmount: ZERO_BI,
+    blockNumber: BigInt(event.block.number),
+    creationTimestamp: BigInt(event.block.timestamp),
+    cancelTimestamp: ZERO_BI,
+    takenTimestamp: ZERO_BI,
+    creationHash: event.transaction.hash,
+    cancelHash: undefined,
+    takenHash: undefined,
   };
 
-  context.TrustlessOTC_OfferCreated.set(entity);
-});
+  let tokenFrom: Token | undefined = await context.Token.get(offer.tokenFrom);
+  let tokenTo: Token | undefined = await context.Token.get(offer.tokenTo);
 
-TrustlessOTC.OfferTaken.handler(async ({ event, context }) => {
-  const entity: TrustlessOTC_OfferTaken = {
-    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-    tradeID: event.params.tradeID,
-  };
+  if (!tokenFrom) {
+    const tokenFromDetails = await getTokenDetails(offer.tokenFrom);
 
-  context.TrustlessOTC_OfferTaken.set(entity);
+    tokenFrom = {
+      id: offer.tokenFrom,
+      name: tokenFromDetails.name,
+      symbol: tokenFromDetails.symbol,
+      decimals: BigInt(tokenFromDetails.decimals),
+    };
+
+    context.Token.set(tokenFrom);
+  }
+
+  if (!tokenTo) {
+    const tokenToDetails = await getTokenDetails(offer.tokenTo);
+
+    tokenTo = {
+      id: offer.tokenTo,
+      name: tokenToDetails.name,
+      symbol: tokenToDetails.symbol,
+      decimals: BigInt(tokenToDetails.decimals),
+    };
+
+    context.Token.set(tokenTo);
+  }
+
+  context.TradeOffer.set(tradeOffer);
 });
