@@ -1,19 +1,25 @@
 import { TrustlessOTC, TradeOffer, BigDecimal, Token } from 'generated';
 import { ADDRESS_ZERO, ZERO_BI, ZERO_BD } from './utils/constants';
 import { getTokenDetails } from './utils/tokenDetails';
-import { fetchOffer } from './utils/offerDetails';
+import { fetchOffer, fetchOfferDetails } from './utils/offerDetails';
 
 TrustlessOTC.OfferCreated.handler(async ({ event, context }) => {
   const tradeId = event.params.tradeID.toString();
 
   const offer = await fetchOffer(event.srcAddress, BigInt(tradeId));
+  const offerDetails = await fetchOfferDetails(
+    event.srcAddress,
+    BigInt(tradeId),
+  );
 
   const tradeOffer: TradeOffer = {
     id: tradeId,
     tokenFrom_id: offer.tokenFrom,
     tokenTo_id: offer.tokenTo,
     amountFrom: BigDecimal(offer.amountFrom.toString()),
-    amountFromWithFee: ZERO_BD,
+    amountFromWithFee: BigDecimal(
+      (offer.amountFrom - offerDetails.fee).toString(),
+    ),
     amountTo: BigDecimal(offer.amountTo.toString()),
     txFrom: event.transaction.from ?? ADDRESS_ZERO,
     creator: offer.creator,
@@ -22,7 +28,7 @@ TrustlessOTC.OfferCreated.handler(async ({ event, context }) => {
     active: true,
     completed: false,
     tradeID: event.params.tradeID,
-    feeAmount: ZERO_BI,
+    feeAmount: offerDetails.fee,
     blockNumber: BigInt(event.block.number),
     creationTimestamp: BigInt(event.block.timestamp),
     cancelTimestamp: ZERO_BI,

@@ -300,3 +300,55 @@ export async function fetchOffer(
     throw error;
   }
 }
+
+export async function fetchOfferDetails(
+  contractAddress: string,
+  tradeID: bigint,
+): Promise<{
+  readonly tokenFrom: string;
+  readonly tokenTo: string;
+  readonly amountFrom: bigint;
+  readonly amountTo: bigint;
+  readonly creator: string;
+  readonly fee: bigint;
+  readonly active: boolean;
+  readonly completed: boolean;
+}> {
+  const trustlessOTC = getContract({
+    address: contractAddress as `0x${string}`,
+    abi: TRUSTLESS_OTC_ABI,
+    client: client,
+  });
+
+  try {
+    const result = await trustlessOTC.read.getOfferDetails([tradeID]);
+
+    const [
+      tokenFrom,
+      tokenTo,
+      amountFrom,
+      amountTo,
+      creator,
+      fee,
+      active,
+      completed,
+    ] = result;
+
+    return {
+      tokenFrom,
+      tokenTo,
+      amountFrom,
+      amountTo,
+      creator,
+      fee,
+      active,
+      completed,
+    };
+  } catch (error) {
+    console.error(
+      `Failed to fetch offer details for trade ID ${tradeID}:`,
+      error,
+    );
+    throw error;
+  }
+}

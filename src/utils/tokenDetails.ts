@@ -47,9 +47,28 @@ const ERC20_ABI = [
   },
 ] as const;
 
-export async function getTokenDetails(
-  contractAddress: string,
-): Promise<{
+// Some precompile contracts return a value,
+// so the subgraph does not recognize the error when the function is called
+let PRECOMPILES: string[] = [
+  '0x0000000000000000000000000000000000000002', // sha256
+  '0x0000000000000000000000000000000000000003', // ripemd
+  '0x0000000000000000000000000000000000000004', // identity
+  '0x0000000000000000000000000000000000000005',
+  '0x0000000000000000000000000000000000000006',
+  '0x0000000000000000000000000000000000000009',
+  '0x000000000000000000000000000000000000000a',
+];
+
+function isPrecompiles(contractAddress: string): boolean {
+  for (let i = 0; i < PRECOMPILES.length; ++i) {
+    if (contractAddress == PRECOMPILES[i]) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export async function getTokenDetails(contractAddress: string): Promise<{
   readonly name: string;
   readonly symbol: string;
   readonly decimals: number;
@@ -62,6 +81,14 @@ export async function getTokenDetails(
   });
 
   let results: [number, string, string];
+
+  if (isPrecompiles(contractAddress)) {
+    return {
+      name: 'UNKNOWN',
+      symbol: 'UNKNOWN',
+      decimals: 0,
+    };
+  }
 
   try {
     // Try standard ERC20 interface first (most common)
@@ -86,7 +113,7 @@ export async function getTokenDetails(
     console.log('First multicall failed, trying alternate method');
     results = [0, '', ''];
   }
-  
+
   const [decimals, name, symbol] = results;
 
   console.log(
