@@ -69,3 +69,33 @@ TrustlessOTC.OfferCreated.handler(async ({ event, context }) => {
 
   context.TradeOffer.set(tradeOffer);
 });
+
+TrustlessOTC.OfferCancelled.handlerWithLoader({
+  // The loader function runs before event processing starts
+  loader: async ({ event, context }) => {
+    const tradeOffer: TradeOffer | undefined = await context.TradeOffer.get(
+      event.params.tradeID.toString(),
+    );
+
+    return {
+      tradeOffer,
+    }
+  },
+
+  // The handler function processes each event with pre-loaded data
+  handler: async ({ event, context, loaderReturn }) => {
+    // Process the event using the data returned by the loader
+    const { tradeOffer } = loaderReturn;
+
+    if (tradeOffer) {
+      const existingTradeOffer: TradeOffer = {
+        ...tradeOffer,
+        active: false,
+        cancelTimestamp: BigInt(event.block.timestamp),
+        cancelHash: event.transaction.hash,
+      };
+
+      context.TradeOffer.set(existingTradeOffer);
+    }
+  },
+});

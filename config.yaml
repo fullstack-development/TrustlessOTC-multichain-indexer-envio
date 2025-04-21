@@ -10,10 +10,18 @@ networks:
     handler: src/EventHandlers.ts
     events:
     - event: OfferCancelled(uint256 indexed tradeID)
+      field_selection:
+        transaction_fields:
+          - hash
+          - from
     - event: OfferCreated(uint256 indexed tradeID)
       field_selection:
-          transaction_fields:
+        transaction_fields:
           - hash
           - from
     - event: OfferTaken(uint256 indexed tradeID)
+      field_selection:
+        transaction_fields:
+          - hash
+          - from
 unordered_multichain_mode: true
