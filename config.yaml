@@ -11,17 +11,16 @@ networks:
     events:
     - event: OfferCancelled(uint256 indexed tradeID)
       field_selection:
-        transaction_fields:
-          - hash
-          - from
+          transaction_fields:
+            - hash
     - event: OfferCreated(uint256 indexed tradeID)
       field_selection:
-        transaction_fields:
-          - hash
-          - from
+          transaction_fields:
+            - hash
+            - from
     - event: OfferTaken(uint256 indexed tradeID)
       field_selection:
-        transaction_fields:
-          - hash
-          - from
+          transaction_fields:
+            - hash
+            - logsBloom
 unordered_multichain_mode: true

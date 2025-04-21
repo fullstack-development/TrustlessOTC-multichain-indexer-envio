@@ -1,7 +1,11 @@
 import { TrustlessOTC, TradeOffer, BigDecimal, Token } from 'generated';
 import { ADDRESS_ZERO, ZERO_BI, ZERO_BD } from './utils/constants';
-import { getTokenDetails } from './utils/tokenDetails';
-import { fetchOffer, fetchOfferDetails } from './utils/offerDetails';
+import { getTokenDetails, getTransferEventsFromTx } from './utils/tokenDetails';
+import {
+  fetchOffer,
+  fetchOfferDetails,
+  fetchUserTradesAndValidateTaker,
+} from './utils/offerDetails';
 
 TrustlessOTC.OfferCreated.handler(async ({ event, context }) => {
   const tradeId = event.params.tradeID.toString();
@@ -79,7 +83,7 @@ TrustlessOTC.OfferCancelled.handlerWithLoader({
 
     return {
       tradeOffer,
-    }
+    };
   },
 
   // The handler function processes each event with pre-loaded data
@@ -93,6 +97,58 @@ TrustlessOTC.OfferCancelled.handlerWithLoader({
         active: false,
         cancelTimestamp: BigInt(event.block.timestamp),
         cancelHash: event.transaction.hash,
+      };
+
+      context.TradeOffer.set(existingTradeOffer);
+    }
+  },
+});
+
+TrustlessOTC.OfferTaken.handlerWithLoader({
+  loader: async ({ event, context }) => {
+    const tradeOffer: TradeOffer | undefined = await context.TradeOffer.get(
+      event.params.tradeID.toString(),
+    );
+
+    return {
+      tradeOffer,
+    };
+  },
+
+  handler: async ({ event, context, loaderReturn }) => {
+    const { tradeOffer } = loaderReturn;
+
+    if (tradeOffer) {
+      const transfers = await getTransferEventsFromTx(
+        event.transaction.hash as `0x${string}`,
+      );
+
+      let taker = ADDRESS_ZERO;
+
+      for (let i = 0; i < transfers.length; i++) {
+        const transfer = transfers[i];
+
+        if (
+          tradeOffer.creator === transfer.to &&
+          transfer.from !== event.srcAddress
+        ) {
+          const isTaker = await fetchUserTradesAndValidateTaker(
+            event.srcAddress,
+            transfer.from,
+            event.params.tradeID,
+          );
+
+          taker = isTaker ? transfer.from : taker;
+        }
+      }
+
+      const existingTradeOffer: TradeOffer = {
+        ...tradeOffer,
+        active: false,
+        completed: true,
+        taker: taker as string,
+        takenTimestamp: BigInt(event.block.timestamp),
+        takenHash: event.transaction.hash,
       };
 
       context.TradeOffer.set(existingTradeOffer);

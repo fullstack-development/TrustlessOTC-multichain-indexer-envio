@@ -1,4 +1,10 @@
-import { createPublicClient, getContract, http, hexToString } from 'viem';
+import {
+  createPublicClient,
+  getContract,
+  http,
+  parseEventLogs,
+  parseAbiItem,
+} from 'viem';
 import { mainnet } from 'viem/chains';
 
 const RPC_URL = process.env.RPC_URL;
@@ -127,4 +133,35 @@ export async function getTokenDetails(contractAddress: string): Promise<{
   } as const;
 
   return entry;
+}
+
+export async function getTransferEventsFromTx(txHash: `0x${string}`): Promise<
+  {
+    from: string;
+    to: string;
+    value: bigint;
+    contractAddress: `0x${string}`;
+  }[]
+> {
+  const receipt = await client.getTransactionReceipt({ hash: txHash });
+
+  const parsed = parseEventLogs({
+    abi: [
+      parseAbiItem(
+        'event Transfer(address indexed from, address indexed to, uint256 value)',
+      ),
+    ],
+    logs: receipt.logs,
+  });
+
+  const transfers = parsed
+    .filter((log) => log.eventName === 'Transfer')
+    .map((log) => ({
+      from: log.args.from,
+      to: log.args.to,
+      value: log.args.value,
+      contractAddress: log.address,
+    }));
+
+  return transfers;
 }

@@ -352,3 +352,28 @@ export async function fetchOfferDetails(
     throw error;
   }
 }
+
+export async function fetchUserTradesAndValidateTaker(
+  contractAddress: string,
+  user: string,
+  tradeID: bigint,
+): Promise<boolean> {
+  const trustlessOTC = getContract({
+    address: contractAddress as `0x${string}`,
+    abi: TRUSTLESS_OTC_ABI,
+    client: client,
+  });
+
+  try {
+    const userTrades = await trustlessOTC.read.getUserTrades([
+      user as `0x${string}`,
+    ]);
+    return userTrades.includes(tradeID);
+  } catch (error) {
+    console.error(
+      `Failed to fetch user trades for address ${user} and trade ID ${tradeID}:`,
+      error,
+    );
+    return false;
+  }
+}
