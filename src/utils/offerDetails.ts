@@ -1,13 +1,5 @@
-import { createPublicClient, getContract, http } from 'viem';
-import { mainnet } from 'viem/chains';
-
-const RPC_URL = process.env.RPC_URL;
-
-const client = createPublicClient({
-  chain: mainnet,
-  transport: http(RPC_URL),
-  batch: { multicall: true }, // Enable multicall batching for efficiency
-});
+import { getContract } from 'viem';
+import { getClient } from './client';
 
 const TRUSTLESS_OTC_ABI = [
   {
@@ -265,6 +257,7 @@ const TRUSTLESS_OTC_ABI = [
 export async function fetchOffer(
   contractAddress: string,
   tradeID: bigint,
+  chainID: number
 ): Promise<{
   tokenFrom: string;
   tokenTo: string;
@@ -276,6 +269,8 @@ export async function fetchOffer(
   completed: boolean;
   tradeID: bigint;
 }> {
+  const client = getClient(chainID);
+
   try {
     const result = await client.readContract({
       address: contractAddress as `0x${string}`,
@@ -304,6 +299,7 @@ export async function fetchOffer(
 export async function fetchOfferDetails(
   contractAddress: string,
   tradeID: bigint,
+  chainID: number
 ): Promise<{
   readonly tokenFrom: string;
   readonly tokenTo: string;
@@ -314,6 +310,8 @@ export async function fetchOfferDetails(
   readonly active: boolean;
   readonly completed: boolean;
 }> {
+  const client = getClient(chainID);
+
   const trustlessOTC = getContract({
     address: contractAddress as `0x${string}`,
     abi: TRUSTLESS_OTC_ABI,
@@ -357,7 +355,9 @@ export async function fetchUserTradesAndValidateTaker(
   contractAddress: string,
   user: string,
   tradeID: bigint,
+  chainID: number
 ): Promise<boolean> {
+  const client = getClient(chainID);
   const trustlessOTC = getContract({
     address: contractAddress as `0x${string}`,
     abi: TRUSTLESS_OTC_ABI,

@@ -1,5 +1,5 @@
 import { TrustlessOTC, TradeOffer, BigDecimal, Token } from 'generated';
-import { ADDRESS_ZERO, ZERO_BI, ZERO_BD } from './utils/constants';
+import { ADDRESS_ZERO, ZERO_BI } from './utils/constants';
 import { getTokenDetails, getTransferEventsFromTx } from './utils/tokenDetails';
 import {
   fetchOffer,
@@ -8,12 +8,17 @@ import {
 } from './utils/offerDetails';
 
 TrustlessOTC.OfferCreated.handler(async ({ event, context }) => {
-  const tradeId = event.params.tradeID.toString();
+  const tradeId = `${event.chainId}_${event.params.tradeID}`;
 
-  const offer = await fetchOffer(event.srcAddress, BigInt(tradeId));
+  const offer = await fetchOffer(
+    event.srcAddress,
+    BigInt(event.params.tradeID),
+    Number(event.chainId),
+  );
   const offerDetails = await fetchOfferDetails(
     event.srcAddress,
-    BigInt(tradeId),
+    BigInt(event.params.tradeID),
+    Number(event.chainId),
   );
 
   const tradeOffer: TradeOffer = {
@@ -46,7 +51,10 @@ TrustlessOTC.OfferCreated.handler(async ({ event, context }) => {
   let tokenTo: Token | undefined = await context.Token.get(offer.tokenTo);
 
   if (!tokenFrom) {
-    const tokenFromDetails = await getTokenDetails(offer.tokenFrom);
+    const tokenFromDetails = await getTokenDetails(
+      offer.tokenFrom,
+      Number(event.chainId),
+    );
 
     tokenFrom = {
       id: offer.tokenFrom,
@@ -59,7 +67,10 @@ TrustlessOTC.OfferCreated.handler(async ({ event, context }) => {
   }
 
   if (!tokenTo) {
-    const tokenToDetails = await getTokenDetails(offer.tokenTo);
+    const tokenToDetails = await getTokenDetails(
+      offer.tokenTo,
+      Number(event.chainId),
+    );
 
     tokenTo = {
       id: offer.tokenTo,
@@ -78,7 +89,7 @@ TrustlessOTC.OfferCancelled.handlerWithLoader({
   // The loader function runs before event processing starts
   loader: async ({ event, context }) => {
     const tradeOffer: TradeOffer | undefined = await context.TradeOffer.get(
-      event.params.tradeID.toString(),
+      `${event.chainId}_${event.params.tradeID}`,
     );
 
     return {
@@ -107,7 +118,7 @@ TrustlessOTC.OfferCancelled.handlerWithLoader({
 TrustlessOTC.OfferTaken.handlerWithLoader({
   loader: async ({ event, context }) => {
     const tradeOffer: TradeOffer | undefined = await context.TradeOffer.get(
-      event.params.tradeID.toString(),
+      `${event.chainId}_${event.params.tradeID}`,
     );
 
     return {
@@ -121,6 +132,7 @@ TrustlessOTC.OfferTaken.handlerWithLoader({
     if (tradeOffer) {
       const transfers = await getTransferEventsFromTx(
         event.transaction.hash as `0x${string}`,
+        Number(event.chainId),
       );
 
       let taker = ADDRESS_ZERO;
@@ -136,6 +148,7 @@ TrustlessOTC.OfferTaken.handlerWithLoader({
             event.srcAddress,
             transfer.from,
             event.params.tradeID,
+            Number(event.chainId),
           );
 
           taker = isTaker ? transfer.from : taker;

@@ -5,15 +5,7 @@ import {
   parseEventLogs,
   parseAbiItem,
 } from 'viem';
-import { mainnet } from 'viem/chains';
-
-const RPC_URL = process.env.RPC_URL;
-
-const client = createPublicClient({
-  chain: mainnet,
-  transport: http(RPC_URL),
-  batch: { multicall: true }, // Enable multicall batching for efficiency
-});
+import { getClient } from './client';
 
 const ERC20_ABI = [
   {
@@ -74,11 +66,12 @@ function isPrecompiles(contractAddress: string): boolean {
   return false;
 }
 
-export async function getTokenDetails(contractAddress: string): Promise<{
+export async function getTokenDetails(contractAddress: string, chianID: number): Promise<{
   readonly name: string;
   readonly symbol: string;
   readonly decimals: number;
 }> {
+  const client = getClient(chianID);
   // Prepare contract instances for different token standard variations
   const erc20 = getContract({
     address: contractAddress as `0x${string}`,
@@ -135,7 +128,7 @@ export async function getTokenDetails(contractAddress: string): Promise<{
   return entry;
 }
 
-export async function getTransferEventsFromTx(txHash: `0x${string}`): Promise<
+export async function getTransferEventsFromTx(txHash: `0x${string}`, chianID: number): Promise<
   {
     from: string;
     to: string;
@@ -143,6 +136,7 @@ export async function getTransferEventsFromTx(txHash: `0x${string}`): Promise<
     contractAddress: `0x${string}`;
   }[]
 > {
+  const client = getClient(chianID);
   const receipt = await client.getTransactionReceipt({ hash: txHash });
 
   const parsed = parseEventLogs({

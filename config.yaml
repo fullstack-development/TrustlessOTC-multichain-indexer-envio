@@ -1,26 +1,35 @@
 # yaml-language-server: $schema=./node_modules/envio/evm.schema.json
 name: berezka-indexer-envio
+unordered_multichain_mode: true # When true, strict cross chain ordering of event processing will not be obeyed.
+contracts:
+  - name: TrustlessOTC
+    handler: src/EventHandlers.ts
+    events:
+      - event: OfferCancelled(uint256 indexed tradeID)
+        field_selection: # Additional fields available to index to augment data
+            transaction_fields:
+              - hash
+      - event: OfferCreated(uint256 indexed tradeID)
+        field_selection:
+            transaction_fields:
+              - hash
+              - from
+      - event: OfferTaken(uint256 indexed tradeID)
+        field_selection:
+            transaction_fields:
+              - hash
 networks:
 - id: 1
-  start_block: 0
+  start_block: 16832772
   contracts:
   - name: TrustlessOTC
     address:
     - 0x3DF302A6e6f5F5a8eEBc844BbF2eCCE59879bA6A
-    handler: src/EventHandlers.ts
-    events:
-    - event: OfferCancelled(uint256 indexed tradeID)
-      field_selection:
-          transaction_fields:
-            - hash
-    - event: OfferCreated(uint256 indexed tradeID)
-      field_selection:
-          transaction_fields:
-            - hash
-            - from
-    - event: OfferTaken(uint256 indexed tradeID)
-      field_selection:
-          transaction_fields:
-            - hash
-            - logsBloom
-unordered_multichain_mode: true
+- id: 42161
+  start_block: 220966376
+  contracts:
+  - name: TrustlessOTC
+    address:
+    - 0xA36f2e5fd4e4BFFeB81cd7f64805E2302716e3a5
+
+
